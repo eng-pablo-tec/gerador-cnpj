@@ -2,12 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gerador de CNPJ Válido</title>
+  <title>Gerador e Validador de CNPJ</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
+      background: #f2f2f2;
       padding: 40px;
       text-align: center;
     }
@@ -16,71 +15,121 @@
       background: white;
       padding: 30px;
       border-radius: 8px;
-      box-shadow: 0 0 10px #ccc;
-      max-width: 400px;
+      max-width: 500px;
       margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
     }
 
-    h1 {
-      font-size: 22px;
-      margin-bottom: 20px;
+    h2 {
+      margin-top: 0;
     }
 
-    #cnpj {
-      font-size: 24px;
-      margin: 20px 0;
-      font-weight: bold;
-      color: green;
+    input {
+      padding: 10px;
+      font-size: 18px;
+      width: 90%;
+      margin-bottom: 15px;
     }
 
     button {
       padding: 10px 20px;
-      background-color: #0066cc;
+      font-size: 16px;
+      background: #007acc;
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      font-size: 16px;
+      margin: 5px;
     }
 
     button:hover {
-      background-color: #004a99;
+      background: #005f99;
+    }
+
+    #resultado, #gerado {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
+
+  <!-- Gerador -->
   <div class="container">
-    <h1>Gerador de CNPJ Válido</h1>
-    <div id="cnpj">Clique para gerar</div>
+    <h2>Gerador de CNPJ Válido</h2>
+    <div id="gerado">Clique no botão para gerar</div>
     <button onclick="gerarCNPJ()">Gerar CNPJ</button>
+  </div>
+
+  <!-- Validador -->
+  <div class="container">
+    <h2>Validador de CNPJ</h2>
+    <input type="text" id="cnpj" placeholder="Digite o CNPJ (somente números)" maxlength="14" />
+    <br>
+    <button onclick="validar()">Validar</button>
+    <div id="resultado"></div>
   </div>
 
   <script>
     function gerarCNPJ() {
-      function rand(n) {
-        return Math.floor(Math.random() * n);
+      const rand = () => Math.floor(Math.random() * 10);
+      const base = Array.from({ length: 8 }, () => rand()).join('') + '0001';
+
+      const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+      const pesos2 = [6].concat(pesos1);
+
+      const calcularDV = (cnpjParcial, pesos) => {
+        const soma = cnpjParcial
+          .split('')
+          .reduce((acc, dig, i) => acc + parseInt(dig) * pesos[i], 0);
+        const resto = soma % 11;
+        return resto < 2 ? '0' : String(11 - resto);
+      };
+
+      const dv1 = calcularDV(base, pesos1);
+      const dv2 = calcularDV(base + dv1, pesos2);
+      const cnpjCompleto = base + dv1 + dv2;
+
+      document.getElementById('gerado').textContent = cnpjCompleto;
+    }
+
+    function validar() {
+      const cnpj = document.getElementById('cnpj').value;
+
+      if (!/^\d{14}$/.test(cnpj)) {
+        return mostrar("CNPJ deve ter exatamente 14 dígitos numéricos", false);
       }
 
-      function calcDV(t) {
-        let j = t.length < 12 ? 5 : 6;
-        let s = 0;
-
-        for (let i = 0; i < t.length; i++) {
-          s += parseInt(t[i]) * j;
-          j = j === 2 ? 9 : j - 1;
-        }
-
-        const r = s % 11;
-        return r < 2 ? '0' : String(11 - r);
+      if (/^(\d)\1+$/.test(cnpj)) {
+        return mostrar("CNPJ inválido (todos os dígitos iguais)", false);
       }
 
-      const base = Array.from({ length: 8 }, () => rand(10)).join('') + '0001';
-      const dv1 = calcDV(base);
-      const dv2 = calcDV(base + dv1);
-      const cnpj = base + dv1 + dv2;
+      const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+      const pesos2 = [6].concat(pesos1);
 
-      document.getElementById('cnpj').innerText = cnpj;
+      const calcularDV = (cnpjParcial, pesos) => {
+        const soma = cnpjParcial
+          .split('')
+          .reduce((acc, dig, i) => acc + parseInt(dig) * pesos[i], 0);
+        const resto = soma % 11;
+        return resto < 2 ? '0' : String(11 - resto);
+      };
+
+      const dv1 = calcularDV(cnpj.slice(0, 12), pesos1);
+      const dv2 = calcularDV(cnpj.slice(0, 12) + dv1, pesos2);
+
+      const valido = cnpj.endsWith(dv1 + dv2);
+      mostrar(valido ? "✅ CNPJ válido" : "❌ CNPJ inválido", valido);
+    }
+
+    function mostrar(msg, ok) {
+      const el = document.getElementById('resultado');
+      el.textContent = msg;
+      el.style.color = ok ? 'green' : 'red';
     }
   </script>
+
 </body>
 </html>
